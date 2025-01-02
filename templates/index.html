@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>10k Guild Maps</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+</head>
+<body>
+    <h1>Welcome to the Map Viewer</h1>
+    <h3>Developed by Thoteman from 10k Diamonds (Guild ID: 486372)</h3>
+
+    {% if user %}
+        <div class="user-info">
+            <p>Logged in as:</p>
+            <img src="{{ user['avatar'] }}" alt="User Avatar" class="avatar">
+            <p>{{ user['name'] }}</p>
+            <a href="/logout/"><button class="menu-button">Logout</button></a>
+        </div>
+    {% else %}
+        <p>Login through Discord to be able to save your work.</p>
+        <a href="/login/"><button class="menu-button">Login with Discord</button></a>
+    {% endif %}
+
+    <p>Select a map to view:</p>
+    <button class="menu-button" onclick="window.location.href='/map/Abyssal Expedition'">Abyssal Expedition</button>
+    <button class="menu-button" onclick="window.location.href='/map/Hunting Fields'">Hunting Fields</button>
+</body>
+</html>

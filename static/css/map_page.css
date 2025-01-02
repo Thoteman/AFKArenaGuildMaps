@@ -1,0 +1,68 @@
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #000;
+}
+
+canvas {
+    display: block;
+}
+
+.top-menu-left {
+    position: absolute;
+    top: 10px;
+    left: 10px;  /* Position menu to the left side */
+    z-index: 10;
+}
+
+.top-menu-right {
+    position: absolute;
+    top: 10px;
+    right: 10px;  /* Position menu to the right side */
+    z-index: 10;
+}
+
+.save-color-container {
+    display: flex;  /* Use flexbox to arrange buttons horizontally */
+    align-items: center;
+    gap: 10px;  /* Add space between the button and color picker */
+}
+
+.menu-button {
+    background-color: #555;
+    color: white;
+    border: none;
+    padding: 10px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.menu-button:hover {
+    background-color: #777;
+}
+
+#saveMapButton {
+    background-color: #4CAF50; /* Green for "Save" button */
+}
+
+#saveMapButton:hover {
+    background-color: #45a049;
+}
+
+.color-picker-container {
+    display: flex;
+    align-items: center;
+    background-color: #555;
+    padding: 5px;
+    border-radius: 5px;
+}
+
+.color-picker-container label {
+    color: white;
+    margin-right: 5px;
+}
+
+.color-picker-container input[type="color"] {
+    cursor: pointer;
+}

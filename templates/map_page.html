@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ map_name }} Map</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/map_page.css') }}">
+</head>
+<body>
+    <script>
+        const mapName = "{{ map_name }}";  // Get the map name dynamically from Flask
+    
+        // Fetch the map image
+        fetch(`/get_map/${mapName}`)
+            .then(response => response.blob())
+            .then(blob => {
+                mapImage.src = URL.createObjectURL(blob);
+                mapImage.onload = () => {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                    renderMap();
+                };
+            });
+    
+        // Fetch the tiles data
+        fetch(`/get_tiles/${mapName}`)
+            .then(response => response.json())
+            .then(data => {
+                tilePositions = data;
+            });
+    </script> 
+    <div class="top-menu-left">
+        <button class="menu-button" onclick="window.location.href='/'">Home</button>
+        <button class="menu-button" id="Abyssal Expedition" onclick="window.location.href='/map/Abyssal Expedition'">AE</button>
+        <button class="menu-button" id="Hunting Fields" onclick="window.location.href='/map/Hunting Fields'">HF</button>
+    </div>
+    
+    <div class="top-menu-right">
+        <!-- Container to hold the Save button and Color Picker -->
+        <div class="save-color-container">
+            <!-- Save map button -->
+            <button class="menu-button" id="saveMapButton">Save Map</button>
+    
+            <!-- Color picker button -->
+            <div class="color-picker-container">
+                <label for="markerColor">Marker Color:</label>
+                <input type="color" id="markerColor" value="#ff0000">
+            </div>
+        </div>
+    </div>
+    
+    <canvas id="mapCanvas"></canvas>
+
+    <!-- Link to map.js -->
+    <script src="{{ url_for('static', filename='js/map_page.js') }}"></script>   
+</body>
+</html>
