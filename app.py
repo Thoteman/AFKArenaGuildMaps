@@ -1,18 +1,21 @@
 from flask import Flask, render_template, jsonify, request, redirect, url_for, session, send_from_directory
 from flask_discord import DiscordOAuth2Session, requires_authorization, Unauthorized
 from flask_sqlalchemy import SQLAlchemy
+from dotenv import load_dotenv
 import json
 import os
 
 app = Flask(__name__)
 
 # App Configuration
-app.secret_key = "baedacfff7d6a3ff907a9a78f5c2129b6aaf103f211778e95e1d9806080cf607"
-app.config["DISCORD_CLIENT_ID"] = "1324329790077014016"
-app.config["DISCORD_CLIENT_SECRET"] = "Po3bYJWJgkO0vODWUWpJPIYo0e6dW0c0"
-app.config["DISCORD_REDIRECT_URI"] = "https://localhost:5000/callback"
-app.config["DISCORD_BOT_TOKEN"] = None  # Optional if you have a bot token
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///markers.db"
+app.secret_key = os.getenv("SECRET_KEY")
+app.config["DISCORD_CLIENT_ID"] = os.getenv("DISCORD_CLIENT_ID")
+app.config["DISCORD_CLIENT_SECRET"] = os.getenv("DISCORD_CLIENT_SECRET")
+app.config["DISCORD_REDIRECT_URI"] = os.getenv("DISCORD_REDIRECT_URI")
+app.config["DISCORD_BOT_TOKEN"] = os.getenv("DISCORD_BOT_TOKEN")
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("SQLALCHEMY_DATABASE_URI")
+app.config['ENV'] = 'production'
+app.config['DEBUG'] = False
 
 # Initialize extensions
 discord = DiscordOAuth2Session(app)
