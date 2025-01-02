@@ -7,6 +7,9 @@ import os
 
 app = Flask(__name__)
 
+# Load the .env file
+load_dotenv()
+
 # App Configuration
 app.secret_key = os.getenv("SECRET_KEY")
 app.config["DISCORD_CLIENT_ID"] = os.getenv("DISCORD_CLIENT_ID")
@@ -134,6 +137,6 @@ with app.app_context():
 
 # Run the app
 if __name__ == "__main__":
-    app.run(ssl_context=("certs/cert.pem", "certs/key.pem"))
+    app.run()
 
 
