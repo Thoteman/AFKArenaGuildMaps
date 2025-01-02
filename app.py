@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, request, redirect, url_for, session, send_from_directory
+from flask import Flask, render_template, jsonify, request, redirect, url_for, session, send_from_directory, Response
 from flask_discord import DiscordOAuth2Session, requires_authorization, Unauthorized
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
@@ -95,8 +95,18 @@ def get_tiles(map_name):
 def get_map(map_name):
     if map_name not in MAPS:
         return "Map not found", 404
+    
     image_path = MAPS[map_name]["image"]
-    return send_from_directory(BASE_PATH, image_path)
+    full_image_path = os.path.join(BASE_PATH, image_path)
+
+    # Define a generator to stream the image in chunks
+    def generate_image():
+        with open(full_image_path, 'rb') as f:
+            while chunk := f.read(1024 * 1024):  # Read in 1MB chunks
+                yield chunk
+
+    # Return the image as a streamed response
+    return Response(generate_image(), content_type='image/jpeg')
 
 @app.route("/save_markers/", methods=["POST"])
 @requires_authorization
