@@ -65,7 +65,7 @@ def logout():
 
 @app.errorhandler(Unauthorized)
 def unauthorized(e):
-    return redirect(url_for("login"))
+    return redirect(url_for("index"))
 
 @app.route("/map/<map_name>")
 @requires_authorization
@@ -100,14 +100,15 @@ def save_markers():
     markers = json.dumps(data["markers"])  # Convert to JSON string
     user_id = session["user"]["id"]
 
-    # Upsert marker data
+    # Upsert marker data (update if exists, insert if not)
     marker = Marker.query.filter_by(user_id=user_id, map_name=map_name).first()
     if marker:
         marker.markers = markers
     else:
         marker = Marker(user_id=user_id, map_name=map_name, markers=markers)
         db.session.add(marker)
-    db.session.commit()
+    
+    db.session.commit()  # Commit the changes to the database
     return jsonify({"status": "success"})
 
 @app.route("/get_markers/<map_name>")

@@ -4,7 +4,7 @@ let scale = 1;
 let offset = { x: 0, y: 0 };
 let dragging = false;
 let lastMousePos = null;
-let markedTiles = new Map();  // Use a map to store tile colors
+let markedTiles = new Map();  // Map to store tile colors
 let tilePositions = [];
 let mapImage = new Image();
 
@@ -62,6 +62,7 @@ canvas.addEventListener("mousedown", e => {
             }
         });
         renderMap();
+        saveMarkers();  // Save markers after any change
     } else if (e.button === 1) { // Middle click (drag)
         dragging = true;
         lastMousePos = mousePos;
@@ -112,8 +113,57 @@ window.onload = function() {
     if (currentMapButton) {
         currentMapButton.style.display = 'none'; // Hide the current map button
     }
+    loadMarkers(); // Load markers when the page loads
+};
+
+// Fetch the map image
+fetch(`/get_map/${mapName}`)
+    .then(response => response.blob())
+    .then(blob => {
+        mapImage.src = URL.createObjectURL(blob);
+        mapImage.onload = () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            renderMap();
+        };
+    });
+
+// Fetch the tiles data
+fetch(`/get_tiles/${mapName}`)
+    .then(response => response.json())
+    .then(data => {
+        tilePositions = data;
+    });
+
+// Save markers to the database
+function saveMarkers() {
+    const data = {
+        map_name: mapName, // Assume mapName is available globally
+        markers: Object.fromEntries(markedTiles) // Convert Map to Object
+    };
+
+    fetch('/save_markers/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => console.log("Markers saved:", result))
+    .catch(error => console.error("Error saving markers:", error));
 }
 
+// Load markers from the database
+function loadMarkers() {
+    fetch(`/get_markers/${mapName}`)
+    .then(response => response.json())
+    .then(data => {
+        markedTiles = new Map(Object.entries(data)); // Convert Object to Map
+        renderMap();  // Re-render the map with loaded markers
+    })
+    .catch(error => console.error("Error loading markers:", error));
+}
+
+// Add functionality for the save button
 document.getElementById("saveMapButton").addEventListener("click", function() {
     // Create a high-definition canvas
     const highResCanvas = document.createElement("canvas");
@@ -153,34 +203,3 @@ document.getElementById("saveMapButton").addEventListener("click", function() {
     // Trigger the download by clicking the link
     link.click();
 });
-
-function saveMarkers() {
-    const data = {
-        map_name: mapName, // Assume mapName is available globally
-        markers: Object.fromEntries(markedTiles) // Convert Map to Object
-    };
-
-    fetch('/save_markers/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(result => console.log("Markers saved:", result))
-    .catch(error => console.error("Error saving markers:", error));
-}
-
-function loadMarkers() {
-    fetch(`/get_markers/${mapName}`)
-    .then(response => response.json())
-    .then(data => {
-        markedTiles = new Map(Object.entries(data)); // Convert Object to Map
-        renderMap();
-    })
-    .catch(error => console.error("Error loading markers:", error));
-}
-
-// Call loadMarkers on page load
-window.onload = function() {
-    loadMarkers();
-};
