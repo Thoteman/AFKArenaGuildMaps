@@ -28,8 +28,8 @@ db = SQLAlchemy(app)
 BASE_PATH = os.path.abspath(".")
 MAPS = {
     "home": {"image": None, "tiles": None},  # Home screen, no image or tile data
-    "Abyssal Expedition": {"image": "static/res/abex_map.png", "tiles": "static/res/SLG_tiles.json"},
-    "Hunting Fields": {"image": "static/res/hf_map.png", "tiles": "static/res/GVE_tiles.json"},
+    "Abyssal Expedition": {"image": "static/res/abex_map.jpeg", "tiles": "static/res/SLG_tiles.json"},
+    "Hunting Fields": {"image": "static/res/hf_map.jpeg", "tiles": "static/res/GVE_tiles.json"},
     # Add more maps here if needed
 }
 

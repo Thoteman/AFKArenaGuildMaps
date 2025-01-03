@@ -210,10 +210,10 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
 
-        const dataUrl = highResCanvas.toDataURL('image/png');
+        const dataUrl = highResCanvas.toDataURL('image/jpeg');
         const link = document.createElement("a");
         link.href = dataUrl;
-        link.download = `${mapName}_high_res_map.png`;
+        link.download = `${mapName}_map.jpeg`;
         link.click();
     }
 
