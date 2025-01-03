@@ -14,7 +14,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Adjust click radius based on zoom scale
     function getClickRadius() {
-        const baseClickRadius = 32;
+        if (mapName.contains("unting")) {
+            const baseClickRadius = 24;
+        }else{
+            const baseClickRadius = 18;
+        }
         return baseClickRadius * scale;
     }
 
