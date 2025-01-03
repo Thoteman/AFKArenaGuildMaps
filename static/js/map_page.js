@@ -174,8 +174,17 @@ document.addEventListener("DOMContentLoaded", () => {
             markerColor = e.target.value;  // Update the marker color based on user input
         });
 
+        // Add functionality for the reset button
+        document.getElementById("resetMapButton").addEventListener("click", resetHighResolutionMap);
+
         // Add functionality for the save button
         document.getElementById("saveMapButton").addEventListener("click", saveHighResolutionMap);
+    }
+
+    function resetHighResolutionMap() {
+        markedTiles = new Map()
+        renderMap();
+        saveMarkers();
     }
 
     function saveHighResolutionMap() {
