@@ -8,27 +8,8 @@
 </head>
 <body>
     <script>
-        const mapName = "{{ map_name }}";  // Get the map name dynamically from Flask
-    
-        // Fetch the map image
-        fetch(`/get_map/${mapName}`)
-            .then(response => response.blob())
-            .then(blob => {
-                mapImage.src = URL.createObjectURL(blob);
-                mapImage.onload = () => {
-                    canvas.width = window.innerWidth;
-                    canvas.height = window.innerHeight;
-                    renderMap();
-                };
-            });
-    
-        // Fetch the tiles data
-        fetch(`/get_tiles/${mapName}`)
-            .then(response => response.json())
-            .then(data => {
-                tilePositions = data;
-            });
-    </script> 
+        const mapName = "{{ map_name }}";
+    </script>
     <div class="top-menu-left">
         <button class="menu-button" onclick="window.location.href='/'">Home</button>
         <button class="menu-button" id="Abyssal Expedition" onclick="window.location.href='/map/Abyssal Expedition'">AE</button>
@@ -51,7 +32,6 @@
     
     <canvas id="mapCanvas"></canvas>
 
-    <!-- Link to map.js -->
-    <script src="{{ url_for('static', filename='js/map_page.js') }}"></script>   
+    <script src="{{ url_for('static', filename='js/map_page.js') }}"></script>
 </body>
 </html>

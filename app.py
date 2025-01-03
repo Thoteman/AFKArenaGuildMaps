@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, request, redirect, url_for, session, send_from_directory
+from flask import Flask, render_template, jsonify, request, redirect, url_for, session, send_from_directory, Response
 from flask_discord import DiscordOAuth2Session, requires_authorization, Unauthorized
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
@@ -95,6 +95,7 @@ def get_tiles(map_name):
 def get_map(map_name):
     if map_name not in MAPS:
         return "Map not found", 404
+
     image_path = MAPS[map_name]["image"]
     return send_from_directory(BASE_PATH, image_path)
 
