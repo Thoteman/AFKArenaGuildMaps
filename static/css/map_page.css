@@ -12,21 +12,25 @@ canvas {
 .top-menu-left {
     position: absolute;
     top: 10px;
-    left: 10px;  /* Position menu to the left side */
+    left: 10px;
+    /* Position menu to the left side */
     z-index: 10;
 }
 
 .top-menu-right {
     position: absolute;
     top: 10px;
-    right: 10px;  /* Position menu to the right side */
+    right: 10px;
+    /* Position menu to the right side */
     z-index: 10;
 }
 
 .save-color-container {
-    display: flex;  /* Use flexbox to arrange buttons horizontally */
+    display: flex;
+    /* Use flexbox to arrange buttons horizontally */
     align-items: center;
-    gap: 10px;  /* Add space between the button and color picker */
+    gap: 10px;
+    /* Add space between the button and color picker */
 }
 
 .menu-button {
@@ -43,7 +47,8 @@ canvas {
 }
 
 #saveMapButton {
-    background-color: #4CAF50; /* Green for "Save" button */
+    background-color: #4CAF50;
+    /* Green for "Save" button */
 }
 
 #saveMapButton:hover {
@@ -65,4 +70,31 @@ canvas {
 
 .color-picker-container input[type="color"] {
     cursor: pointer;
+}
+
+html,
+body {
+    overflow: hidden;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    font-family: 'Lucida Grande', Geneva, Arial, Verdana, sans-serif;
+}
+
+body {
+    margin: 10px;
+    background: #fff;
+    max-width: calc(100% - 20px);
+}
+
+#header {
+    height: 43px;
+    padding: 0;
+    background-color: #eee;
+    border: 1px solid #888;
+}
+
+#map {
+    height: 90%;
+    border: 1px solid #888;
 }
