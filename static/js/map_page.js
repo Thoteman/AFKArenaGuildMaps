@@ -9,16 +9,13 @@ document.addEventListener("DOMContentLoaded", () => {
     let tilePositions = [];
     let mapImage = new Image();
 
-    // Default marker color
+    // Default marker color and type
     let markerColor = "#ff0000";
+    let markerType = "circle";
 
     // Adjust click radius based on zoom scale
     function getClickRadius() {
-        if (mapName.contains("unting")) {
-            const baseClickRadius = 24;
-        }else{
-            const baseClickRadius = 18;
-        }
+        const baseClickRadius = 17;
         return baseClickRadius * scale;
     }
 
@@ -37,12 +34,41 @@ document.addEventListener("DOMContentLoaded", () => {
             // Use the color stored for this tile, or the default color if not yet marked
             const color = markedTiles.has(hexCoords) ? markedTiles.get(hexCoords) : "#000000"; // default color for unmarked tiles
 
-            if (markedTiles.has(hexCoords)) {
-                ctx.beginPath();
-                ctx.arc(x * scale + offset.x, y * scale + offset.y, 10 * scale, 0, 2 * Math.PI);
-                ctx.fillStyle = color;
-                ctx.fill();
+            if (markerType != "hex") {
+                if (markedTiles.has(hexCoords)) {
+                    ctx.beginPath();
+                    ctx.arc(x * scale + offset.x, y * scale + offset.y, 10 * scale, 0, 2 * Math.PI);
+                    ctx.fillStyle = color;
+                    ctx.fill();
+                }
+            }if (markerType != "circle") {
+                if (markedTiles.has(hexCoords)) {
+                    const centerX = x * scale + offset.x;
+                    const centerY = y * scale + offset.y;
+                    const hexSize = mapName === "Hunting Fields" ? 24 * scale : 32 * scale;
+                
+                    const stretchFactor = 1.1; // Adjust this to widen the hexagon
+                
+                    ctx.beginPath();
+                    for (let i = 0; i < 6; i++) {
+                        const angle = (Math.PI / 3) * i - Math.PI / 6;
+                        // Stretch the x-coordinate by the stretchFactor
+                        const vertexX = centerX + hexSize * Math.cos(angle) * stretchFactor;
+                        const vertexY = centerY + hexSize * Math.sin(angle);
+                        if (i === 0) {
+                            ctx.moveTo(vertexX, vertexY);
+                        } else {
+                            ctx.lineTo(vertexX, vertexY);
+                        }
+                    }
+                    ctx.closePath();
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 3 * scale;
+                    ctx.stroke();
+                }
+                
             }
+            
         });
     }
 
@@ -183,6 +209,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Add functionality for the save button
         document.getElementById("saveMapButton").addEventListener("click", saveHighResolutionMap);
+
+        document.getElementById("changeMarkerButton").addEventListener("click", changeMarker);
     }
 
     function resetHighResolutionMap() {
@@ -200,18 +228,49 @@ document.addEventListener("DOMContentLoaded", () => {
 
         highResCtx.drawImage(mapImage, 0, 0, mapImage.width, mapImage.height);
 
+        // Draw markers
         tilePositions.forEach(tile => {
             const [x, y] = tile.pixel_coords;
             const hexCoords = tile.hex_coords.join(',');
 
-            const color = markedTiles.has(hexCoords) ? markedTiles.get(hexCoords) : "#000000";
+            // Use the color stored for this tile, or the default color if not yet marked
+            const color = markedTiles.has(hexCoords) ? markedTiles.get(hexCoords) : "#000000"; // default color for unmarked tiles
 
-            if (markedTiles.has(hexCoords)) {
-                highResCtx.beginPath();
-                highResCtx.arc(x, y, 10, 0, 2 * Math.PI);
-                highResCtx.fillStyle = color;
-                highResCtx.fill();
+            if (markerType != "hex") {
+                if (markedTiles.has(hexCoords)) {
+                    highResCtx.beginPath();
+                    highResCtx.arc(x, y, 10, 0, 2 * Math.PI);
+                    highResCtx.fillStyle = color;
+                    highResCtx.fill();
+                }
+            } if (markerType != "circle") {
+                if (markedTiles.has(hexCoords)) {
+                    const centerX = x;
+                    const centerY = y;
+                    const hexSize = mapName === "Hunting Fields" ? 24 : 32 ;
+                
+                    const stretchFactor = 1.1; // Adjust this to widen the hexagon
+                
+                    highResCtx.beginPath();
+                    for (let i = 0; i < 6; i++) {
+                        const angle = (Math.PI / 3) * i - Math.PI / 6;
+                        // Stretch the x-coordinate by the stretchFactor
+                        const vertexX = centerX + hexSize * Math.cos(angle) * stretchFactor;
+                        const vertexY = centerY + hexSize * Math.sin(angle);
+                        if (i === 0) {
+                            highResCtx.moveTo(vertexX, vertexY);
+                        } else {
+                            highResCtx.lineTo(vertexX, vertexY);
+                        }
+                    }
+                    highResCtx.closePath();
+                    highResCtx.strokeStyle = color;
+                    highResCtx.lineWidth = 3;
+                    highResCtx.stroke();
+                }
+                
             }
+            
         });
 
         const dataUrl = highResCanvas.toDataURL('image/jpeg');
@@ -219,6 +278,17 @@ document.addEventListener("DOMContentLoaded", () => {
         link.href = dataUrl;
         link.download = `${mapName}_map.jpeg`;
         link.click();
+    }
+
+    function changeMarker() {
+        if (markerType == "circle") {
+            markerType = "hex";
+        } else if (markerType = "hex") {
+            markerType = "both";
+        } else if (markerType == "both") {
+            markerType = "circle"
+        }
+        renderMap();
     }
 
     initialize();

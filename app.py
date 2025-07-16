@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 import json
 import os
 
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+
 app = Flask(__name__)
 
 # Load the .env file
