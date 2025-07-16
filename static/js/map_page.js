@@ -1,106 +1,81 @@
 document.addEventListener("DOMContentLoaded", () => {
-    const canvas = document.getElementById("mapCanvas");
-    const ctx = canvas.getContext("2d");
-    let scale = 1;
-    let offset = { x: 0, y: 0 };
-    let dragging = false;
-    let lastMousePos = null;
-    let markedTiles = new Map();  // Map to store tile colors
-    let tilePositions = [];
-    let mapImage = new Image();
-
-    // Default marker color and type
     let markerColor = "#ff0000";
     let markerType = "circle";
+    let markedTiles = new Map();
+    let tilePositions = [];
 
-    // Adjust click radius based on zoom scale
-    function getClickRadius() {
-        const baseClickRadius = 17;
-        return baseClickRadius * scale;
+    // Base map layer (static image as tile)
+    const map = new ol.Map({
+        target: 'map',
+        layers: [],
+        view: new ol.View({
+            center: [0, 0],
+            zoom: 2,
+            projection: 'EPSG:3857',
+        }),
+    });
+
+    // Vector source and layer for markers
+    const vectorSource = new ol.source.Vector();
+    const vectorLayer = new ol.layer.Vector({ source: vectorSource });
+    map.addLayer(vectorLayer);
+
+    // Utility: convert pixel coords to Web Mercator (fake projection here)
+    function toMercator([x, y]) {
+        return ol.proj.fromLonLat([x, -y]); // y-negated for image-based alignment
     }
 
-    // Render the map with zoom and pan
-    function renderMap() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    function drawMarker(tile) {
+        const [x, y] = tile.pixel_coords;
+        const coords = toMercator([x, y]);
+        const hexCoords = tile.hex_coords.join(',');
 
-        // Draw the map image with current scale and offset
-        ctx.drawImage(mapImage, offset.x, offset.y, mapImage.width * scale, mapImage.height * scale);
+        const markerFeature = new ol.Feature({
+            geometry: new ol.geom.Point(coords),
+            name: hexCoords,
+        });
 
-        // Draw markers
+        const style = new ol.style.Style({
+            image: markerType !== 'hex' ? new ol.style.Circle({
+                radius: 8,
+                fill: new ol.style.Fill({ color: markedTiles.get(hexCoords) || markerColor }),
+                stroke: new ol.style.Stroke({ color: '#000', width: 1 }),
+            }) : undefined,
+
+            // Optional hex drawing
+            stroke: markerType !== 'circle' ? new ol.style.Stroke({
+                color: markedTiles.get(hexCoords) || markerColor,
+                width: 2,
+            }) : undefined
+        });
+
+        markerFeature.setStyle(style);
+        vectorSource.addFeature(markerFeature);
+    }
+
+    function updateMarkers() {
+        vectorSource.clear();
         tilePositions.forEach(tile => {
-            const [x, y] = tile.pixel_coords;
             const hexCoords = tile.hex_coords.join(',');
-
-            // Use the color stored for this tile, or the default color if not yet marked
-            const color = markedTiles.has(hexCoords) ? markedTiles.get(hexCoords) : "#000000"; // default color for unmarked tiles
-
-            if (markerType != "hex") {
-                if (markedTiles.has(hexCoords)) {
-                    ctx.beginPath();
-                    ctx.arc(x * scale + offset.x, y * scale + offset.y, 10 * scale, 0, 2 * Math.PI);
-                    ctx.fillStyle = color;
-                    ctx.fill();
-                }
-            }if (markerType != "circle") {
-                if (markedTiles.has(hexCoords)) {
-                    const centerX = x * scale + offset.x;
-                    const centerY = y * scale + offset.y;
-                    const hexSize = mapName === "Hunting Fields" ? 24 * scale : 32 * scale;
-                
-                    const stretchFactor = 1.1; // Adjust this to widen the hexagon
-                
-                    ctx.beginPath();
-                    for (let i = 0; i < 6; i++) {
-                        const angle = (Math.PI / 3) * i - Math.PI / 6;
-                        // Stretch the x-coordinate by the stretchFactor
-                        const vertexX = centerX + hexSize * Math.cos(angle) * stretchFactor;
-                        const vertexY = centerY + hexSize * Math.sin(angle);
-                        if (i === 0) {
-                            ctx.moveTo(vertexX, vertexY);
-                        } else {
-                            ctx.lineTo(vertexX, vertexY);
-                        }
-                    }
-                    ctx.closePath();
-                    ctx.strokeStyle = color;
-                    ctx.lineWidth = 3 * scale;
-                    ctx.stroke();
-                }
-                
+            if (markedTiles.has(hexCoords)) {
+                drawMarker(tile);
             }
-            
         });
     }
-
-    // Fetch the map image
-    function fetchMap() {
-        fetch(`/get_map/${mapName}`)
-            .then(response => response.blob())
-            .then(blob => {
-                mapImage.src = URL.createObjectURL(blob);
-                mapImage.onload = () => {
-                    canvas.width = window.innerWidth;
-                    canvas.height = window.innerHeight;
-                    renderMap();
-                };
-            });
-    }
-
-    // Fetch the tiles data
-    function fetchTiles() {
-        fetch(`/get_tiles/${mapName}`)
+    
+    function loadMarkers() {
+        fetch(`/get_markers/${mapName}`)
             .then(response => response.json())
             .then(data => {
-                tilePositions = data;
-                renderMap(); // Render after tiles load
+                markedTiles = new Map(Object.entries(data));
+                updateMarkers();
             });
     }
 
-    // Save markers to the database
     function saveMarkers() {
         const data = {
-            map_name: mapName, // Assume mapName is available globally
-            markers: Object.fromEntries(markedTiles) // Convert Map to Object
+            map_name: mapName,
+            markers: Object.fromEntries(markedTiles),
         };
 
         fetch('/save_markers/', {
@@ -108,187 +83,113 @@ document.addEventListener("DOMContentLoaded", () => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         })
-            .then(response => response.json())
-            .then(result => console.log("Markers saved:", result))
-            .catch(error => console.error("Error saving markers:", error));
+        .then(res => res.json())
+        .then(result => console.log("Markers saved:", result))
+        .catch(err => console.error("Error saving markers:", err));
     }
 
-    // Load markers from the database
-    function loadMarkers() {
-        fetch(`/get_markers/${mapName}`)
-            .then(response => response.json())
-            .then(data => {
-                markedTiles = new Map(Object.entries(data)); // Convert Object to Map
-                renderMap();  // Re-render the map with loaded markers
-            })
-            .catch(error => console.error("Error loading markers:", error));
+    function resetHighResolutionMap() {
+        markedTiles.clear();
+        updateMarkers();
+        saveMarkers();
     }
 
-    // Initialize everything
-    function initialize() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-
-        fetchMap();
-        fetchTiles();
-        loadMarkers();
-
-        // Add event listeners
-        setupEventListeners();
+    function changeMarker() {
+        if (markerType === "circle") {
+            markerType = "hex";
+        } else if (markerType === "hex") {
+            markerType = "both";
+        } else {
+            markerType = "circle";
+        }
+        updateMarkers();
     }
 
-    // Mouse events for clicking, dragging, and zooming
-    function setupEventListeners() {
-        canvas.addEventListener("mousedown", e => {
-            const mousePos = { x: e.clientX, y: e.clientY };
-            if (e.button === 0) { // Left click
-                tilePositions.forEach(tile => {
-                    const [x, y] = tile.pixel_coords;
-                    const adjustedX = x * scale + offset.x;
-                    const adjustedY = y * scale + offset.y;
-                    const distance = Math.hypot(mousePos.x - adjustedX, mousePos.y - adjustedY);
-                    if (distance < getClickRadius()) {
-                        const hexCoords = tile.hex_coords.join(',');
-                        if (markedTiles.has(hexCoords)) {
-                            // If the tile is already marked, remove it
-                            markedTiles.delete(hexCoords);
-                        } else {
-                            // If the tile is not marked, add it with the current color
-                            markedTiles.set(hexCoords, markerColor);
-                        }
+    function setupInteraction() {
+        map.on('click', function (evt) {
+            const clickCoord = evt.coordinate;
+            const lonLat = ol.proj.toLonLat(clickCoord);
+            const [clickX, clickY] = [lonLat[0], -lonLat[1]];
+
+            tilePositions.forEach(tile => {
+                const [x, y] = tile.pixel_coords;
+                const distance = Math.hypot(clickX - x, clickY - y);
+                if (distance < 25) {
+                    const hexCoords = tile.hex_coords.join(',');
+                    if (markedTiles.has(hexCoords)) {
+                        markedTiles.delete(hexCoords);
+                    } else {
+                        markedTiles.set(hexCoords, markerColor);
                     }
-                });
-                renderMap();
-                saveMarkers();  // Save markers after any change
-            } else if (e.button === 1) { // Middle click (drag)
-                dragging = true;
-                lastMousePos = mousePos;
-            }
+                }
+            });
+
+            updateMarkers();
+            saveMarkers();
         });
 
-        canvas.addEventListener("mouseup", () => {
-            dragging = false;
-        });
-
-        canvas.addEventListener("mousemove", e => {
-            if (dragging && lastMousePos) {
-                const mousePos = { x: e.clientX, y: e.clientY };
-                const dx = mousePos.x - lastMousePos.x;
-                const dy = mousePos.y - lastMousePos.y;
-                offset.x += dx;
-                offset.y += dy;
-                lastMousePos = mousePos;
-                renderMap();
-            }
-        });
-
-        canvas.addEventListener("wheel", e => {
-            const mousePos = { x: e.clientX, y: e.clientY };
-            const zoomStep = 1.1;
-            const oldScale = scale;
-            scale = e.deltaY < 0 ? scale * zoomStep : scale / zoomStep;
-            offset.x -= (mousePos.x - offset.x) * (scale / oldScale - 1);
-            offset.y -= (mousePos.y - offset.y) * (scale / oldScale - 1);
-            renderMap();
-            e.preventDefault();
-        });
-
-        window.addEventListener("resize", () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            renderMap();
-        });
-
-        // Update marker color when the user selects a new color
         document.getElementById("markerColor").addEventListener("input", (e) => {
-            markerColor = e.target.value;  // Update the marker color based on user input
+            markerColor = e.target.value;
         });
 
-        // Add functionality for the reset button
         document.getElementById("resetMapButton").addEventListener("click", resetHighResolutionMap);
-
-        // Add functionality for the save button
-        document.getElementById("saveMapButton").addEventListener("click", saveHighResolutionMap);
+        document.getElementById("saveMapButton").addEventListener("click", () => {
+            map.once('rendercomplete', () => {
+                map.once('postcompose', function (event) {
+                    const canvas = event.context.canvas;
+                    const dataUrl = canvas.toDataURL('image/png');
+                    const link = document.createElement('a');
+                    link.href = dataUrl;
+                    link.download = `${mapName}_map.png`;
+                    link.click();
+                });
+            });
+            map.renderSync();
+        });
 
         document.getElementById("changeMarkerButton").addEventListener("click", changeMarker);
     }
 
-    function resetHighResolutionMap() {
-        markedTiles = new Map()
-        renderMap();
-        saveMarkers();
+    function fetchMapImage() {
+        fetch(`/get_map/${mapName}`)
+            .then(response => response.blob())
+            .then(blob => {
+                const url = URL.createObjectURL(blob);
+                const img = new Image();
+                img.onload = () => {
+                    const extent = [0, 0, img.width, img.height];
+                    const projection = new ol.proj.Projection({
+                        code: 'custom-image',
+                        units: 'pixels',
+                        extent: extent,
+                    });
+
+                    const imageLayer = new ol.layer.Image({
+                        source: new ol.source.ImageStatic({
+                            url: url,
+                            imageExtent: extent,
+                            projection: projection,
+                        })
+                    });
+
+                    map.setLayers([imageLayer, vectorLayer]);
+
+                    map.setView(new ol.View({
+                        projection: projection,
+                        center: ol.extent.getCenter(extent),
+                        zoom: 2,
+                        maxZoom: 8,
+                    }));
+                };
+                img.src = url;
+            });
     }
 
-    function saveHighResolutionMap() {
-        const highResCanvas = document.createElement("canvas");
-        const highResCtx = highResCanvas.getContext("2d");
-
-        highResCanvas.width = mapImage.width;
-        highResCanvas.height = mapImage.height;
-
-        highResCtx.drawImage(mapImage, 0, 0, mapImage.width, mapImage.height);
-
-        // Draw markers
-        tilePositions.forEach(tile => {
-            const [x, y] = tile.pixel_coords;
-            const hexCoords = tile.hex_coords.join(',');
-
-            // Use the color stored for this tile, or the default color if not yet marked
-            const color = markedTiles.has(hexCoords) ? markedTiles.get(hexCoords) : "#000000"; // default color for unmarked tiles
-
-            if (markerType != "hex") {
-                if (markedTiles.has(hexCoords)) {
-                    highResCtx.beginPath();
-                    highResCtx.arc(x, y, 10, 0, 2 * Math.PI);
-                    highResCtx.fillStyle = color;
-                    highResCtx.fill();
-                }
-            } if (markerType != "circle") {
-                if (markedTiles.has(hexCoords)) {
-                    const centerX = x;
-                    const centerY = y;
-                    const hexSize = mapName === "Hunting Fields" ? 24 : 32 ;
-                
-                    const stretchFactor = 1.1; // Adjust this to widen the hexagon
-                
-                    highResCtx.beginPath();
-                    for (let i = 0; i < 6; i++) {
-                        const angle = (Math.PI / 3) * i - Math.PI / 6;
-                        // Stretch the x-coordinate by the stretchFactor
-                        const vertexX = centerX + hexSize * Math.cos(angle) * stretchFactor;
-                        const vertexY = centerY + hexSize * Math.sin(angle);
-                        if (i === 0) {
-                            highResCtx.moveTo(vertexX, vertexY);
-                        } else {
-                            highResCtx.lineTo(vertexX, vertexY);
-                        }
-                    }
-                    highResCtx.closePath();
-                    highResCtx.strokeStyle = color;
-                    highResCtx.lineWidth = 3;
-                    highResCtx.stroke();
-                }
-                
-            }
-            
-        });
-
-        const dataUrl = highResCanvas.toDataURL('image/jpeg');
-        const link = document.createElement("a");
-        link.href = dataUrl;
-        link.download = `${mapName}_map.jpeg`;
-        link.click();
-    }
-
-    function changeMarker() {
-        if (markerType == "circle") {
-            markerType = "hex";
-        } else if (markerType == "hex") {
-            markerType = "both";
-        } else if (markerType == "both") {
-            markerType = "circle"
-        }
-        renderMap();
+    function initialize() {
+        fetchMapImage();
+        fetchTiles();
+        loadMarkers();
+        setupInteraction();
     }
 
     initialize();

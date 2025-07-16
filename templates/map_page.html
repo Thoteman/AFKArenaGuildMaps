@@ -1,43 +1,145 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ map_name }} Map</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/map_page.css') }}">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <meta http-equiv='imagetoolbar' content='no'/>
+    <style type="text/css"> v\:* {behavior:url(#default#VML);}
+        html, body { overflow: hidden; padding: 0; height: 100%; width: 100%; font-family: 'Lucida Grande',Geneva,Arial,Verdana,sans-serif; }
+        body { margin: 10px; background: #fff; max-width: calc(100% - 20px); }
+        h1 { margin: 0; padding: 6px; border:0; font-size: 20pt; }
+        #header { height: 43px; padding: 0; background-color: #eee; border: 1px solid #888; }
+        #subheader { height: 12px; text-align: right; font-size: 10px; color: #555;}
+        #map { height: 90%; border: 1px solid #888; }
+    </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@main/dist/en/v7.0.0/legacy/ol.css" type="text/css">
+    <script src="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@main/dist/en/v7.0.0/legacy/ol.js"></script>
+    <script src="https://unpkg.com/ol-layerswitcher@4.1.1"></script>
+    <link rel="stylesheet" href="https://unpkg.com/ol-layerswitcher@4.1.1/src/ol-layerswitcher.css" />
 </head>
 <body>
     <script>
         const mapName = "{{ map_name }}";
     </script>
+
     <div class="top-menu-left">
         <button class="menu-button" onclick="window.location.href='/'">Home</button>
-        <button class="menu-button" id="Abyssal Expedition" onclick="window.location.href='/map/Abyssal Expedition'">AE</button>
-        <button class="menu-button" id="Hunting Fields" onclick="window.location.href='/map/Hunting Fields'">HF</button>
+        <button class="menu-button" onclick="window.location.href='/map/Abyssal Expedition'">AE</button>
+        <button class="menu-button" onclick="window.location.href='/map/Hunting Fields'">HF</button>
     </div>
-    
+
     <div class="top-menu-right">
-        <!-- Container to hold the Save button and Color Picker -->
         <div class="save-color-container">
-            <!-- Save map button -->
             <button class="menu-button" id="resetMapButton">Reset Map</button>
-
-            <!-- Save map button -->
             <button class="menu-button" id="saveMapButton">Download Map</button>
-
-            <!-- Save map button -->
             <button class="menu-button" id="changeMarkerButton">Change Marker</button>
-    
-            <!-- Color picker button -->
+
             <div class="color-picker-container">
                 <label for="markerColor">Marker Color:</label>
                 <input type="color" id="markerColor" value="#ff0000">
             </div>
         </div>
     </div>
-    
-    <canvas id="mapCanvas"></canvas>
 
-    <script src="{{ url_for('static', filename='js/map_page.js') }}"></script>
+    <div id="map" class="map"></div>
+    <div id="mouse-position"></div>
+    <script type="text/javascript">
+        var mousePositionControl = new ol.control.MousePosition({
+            className: 'custom-mouse-position',
+            target: document.getElementById('mouse-position'),
+            undefinedHTML: '&nbsp;'
+        });
+        if (mapName === "Abyssal Expedition") {
+            var map = new ol.Map({
+                controls: ol.control.defaults.defaults().extend([mousePositionControl]),
+                target: 'map',
+
+                layers: [
+                    new ol.layer.Group({
+                        title: 'Overlay',
+                        layers: [
+                            new ol.layer.Tile({
+                                title: 'Overlay',
+                                // opacity: 0.7,
+                                source: new ol.source.TileImage({
+                                    attributions: '',
+                                    tileGrid: new ol.tilegrid.TileGrid({
+                                        extent: [0,-14400,19200,0],
+                                        origin: [0,-14400],
+                                        resolutions: [128, 64, 32, 16, 8, 4, 2, 1],
+                                        tileSize: [256, 256]
+                                    }),
+                                    tileUrlFunction: function(tileCoord) {
+                                        return ('../static/tiles/abex/{z}/{x}/{y}.png'
+                                            .replace('{z}', String(tileCoord[0]))
+                                            .replace('{x}', String(tileCoord[1]))
+                                            .replace('{y}', String(- 1 - tileCoord[2])));
+                                    },
+                                })
+                            }),
+                        ]
+                    }),
+                ],
+                view: new ol.View({
+                    center: [8600, -7200],
+                    zoom: 0,
+                    minZoom: 0,
+                    maxZoom: 7,
+                    resolutions: [128, 64, 32, 16, 8, 4, 2, 1],
+                    extent: [0, -14400, 19200, 0],
+                    projection: new ol.proj.Projection({ code: 'EPSG:3857', units: 'm' })
+                })
+            });
+        } else if (mapName === "Hunting Fields") {
+            const projection = new ol.proj.Projection({
+                code: 'CUSTOM',
+                units: 'pixels',
+                extent: [0, -4680, 3840, 0]
+            });
+
+            var map = new ol.Map({
+                controls: ol.control.defaults.defaults().extend([mousePositionControl]),
+                target: 'map',
+
+                layers: [
+                    new ol.layer.Group({
+                        title: 'Overlay',
+                        layers: [
+                            new ol.layer.Tile({
+                                title: 'Overlay',
+                                source: new ol.source.TileImage({
+                                    attributions: '',
+                                    projection: projection,
+                                    tileGrid: new ol.tilegrid.TileGrid({
+                                        extent: projection.getExtent(),
+                                        origin: [0, -4680],
+                                        resolutions: [32, 16, 8, 4, 2, 1],
+                                        tileSize: [256, 256]
+                                    }),
+                                    tileUrlFunction: function(tileCoord) {
+                                        return ('../static/tiles/hf/{z}/{x}/{y}.png'
+                                            .replace('{z}', String(tileCoord[0]))
+                                            .replace('{x}', String(tileCoord[1]))
+                                            .replace('{y}', String(-1 - tileCoord[2])));
+                                    },
+                                })
+                            }),
+                        ]
+                    }),
+                ],
+
+                view: new ol.View({
+                    projection: projection,
+                    resolutions: [32, 16, 8, 4, 2, 1],
+                    center: [1920, -2340], // initial center
+                    zoom: 0,
+                    minZoom: 0,
+                    maxZoom: 5,
+                    extent: projection.getExtent()
+                })
+            });
+            map.getView().fit(projection.getExtent(), { size: map.getSize() });
+        }
+    </script>
 </body>
 </html>
