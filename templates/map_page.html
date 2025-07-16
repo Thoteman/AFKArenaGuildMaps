@@ -91,12 +91,6 @@
                 })
             });
         } else if (mapName === "Hunting Fields") {
-            const projection = new ol.proj.Projection({
-                code: 'CUSTOM',
-                units: 'pixels',
-                extent: [0, -4680, 3840, 0]
-            });
-
             var map = new ol.Map({
                 controls: ol.control.defaults.defaults().extend([mousePositionControl]),
                 target: 'map',
@@ -107,11 +101,11 @@
                         layers: [
                             new ol.layer.Tile({
                                 title: 'Overlay',
+                                // opacity: 0.7,
                                 source: new ol.source.TileImage({
                                     attributions: '',
-                                    projection: projection,
                                     tileGrid: new ol.tilegrid.TileGrid({
-                                        extent: projection.getExtent(),
+                                        extent: [0, -4680, 3840, 0],
                                         origin: [0, -4680],
                                         resolutions: [32, 16, 8, 4, 2, 1],
                                         tileSize: [256, 256]
@@ -120,25 +114,23 @@
                                         return ('../static/tiles/hf/{z}/{x}/{y}.png'
                                             .replace('{z}', String(tileCoord[0]))
                                             .replace('{x}', String(tileCoord[1]))
-                                            .replace('{y}', String(-1 - tileCoord[2])));
+                                            .replace('{y}', String(- 1 - tileCoord[2])));
                                     },
                                 })
                             }),
                         ]
                     }),
                 ],
-
                 view: new ol.View({
-                    projection: projection,
                     resolutions: [32, 16, 8, 4, 2, 1],
                     center: [1920, -2340], // initial center
                     zoom: 0,
                     minZoom: 0,
                     maxZoom: 5,
-                    extent: projection.getExtent()
+                    extent: [0, -4680, 3840, 0],
+                    projection: new ol.proj.Projection({ code: 'EPSG:3857', units: 'm' })
                 })
             });
-            map.getView().fit(projection.getExtent(), { size: map.getSize() });
         }
     </script>
 </body>
