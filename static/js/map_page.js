@@ -283,7 +283,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function changeMarker() {
         if (markerType == "circle") {
             markerType = "hex";
-        } else if (markerType = "hex") {
+        } else if (markerType == "hex") {
             markerType = "both";
         } else if (markerType == "both") {
             markerType = "circle"
