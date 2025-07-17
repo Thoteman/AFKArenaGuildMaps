@@ -161,7 +161,6 @@ document.addEventListener("DOMContentLoaded", () => {
             .then(res => res.json())
             .then(data => {
                 tilePositions = data;
-                console.log("Loaded tilePositions:", tilePositions.length);
                 updateMarkers();
             });
     }
@@ -251,7 +250,52 @@ document.addEventListener("DOMContentLoaded", () => {
         loadMarkers();
     }
 
+    function saveMap() {
+        // Ensure the map has been rendered
+        map.once('rendercomplete', function () {
+            const mapTarget = map.getTargetElement();
+            const canvasElements = mapTarget.querySelectorAll('canvas');
+
+            if (canvasElements.length === 0) {
+                console.error("No canvases found.");
+                return;
+            }
+
+            // Create a new canvas to merge all layers
+            const width = canvasElements[0].width;
+            const height = canvasElements[0].height;
+            const finalCanvas = document.createElement('canvas');
+            finalCanvas.width = width;
+            finalCanvas.height = height;
+            const finalContext = finalCanvas.getContext('2d');
+
+            // Merge each canvas into the final canvas
+            canvasElements.forEach((canvas) => {
+                // Only merge visible canvases
+                if (canvas.style.display !== 'none') {
+                    finalContext.drawImage(canvas, 0, 0);
+                }
+            });
+
+            try {
+                const image = finalCanvas.toDataURL('image/png');
+                const link = document.createElement('a');
+                link.href = image;
+                link.download = `${mapName}_marked_map.png`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (err) {
+                console.error("Error generating image:", err);
+            }
+        });
+
+        // Force re-render to trigger 'rendercomplete'
+        map.renderSync();
+    }
+
     create_map();
     map.getView().on('change:resolution', updateMarkers);
+    document.getElementById("saveMapButton").addEventListener("click", saveMap);
 
 });
