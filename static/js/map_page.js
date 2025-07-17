@@ -256,17 +256,44 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function saveMap() {
-        const exportScale = 4;
+        if (mapName === "Abyssal Expedition") {
+            var exportWidth = 12000;
+            var exportHeight = 9000;
+        } else if (mapName === "Hunting Fields") {
+            var exportWidth = 2400;
+            var exportHeight = 2930;
+        }
 
         const originalSize = map.getSize();
         const originalResolution = map.getView().getResolution();
         const originalCenter = map.getView().getCenter();
-        const exportSize = [originalSize[0] * exportScale, originalSize[1] * exportScale];
-        const exportResolution = originalResolution / exportScale;
+        const originalZoom = map.getView().getZoom();
 
+        const tileLayer = map.getLayers().item(0).getLayers().item(0);
+        const tileGrid = tileLayer.getSource().getTileGrid();
+        const extent = tileGrid.getExtent(); // [minX, minY, maxX, maxY]
+
+        const maxZoom = map.getView().getMaxZoom();
+        const exportZoom = maxZoom - 1;
+        const exportResolution = map.getView().getResolutions()[exportZoom];
+
+        // Calculate exact center based on extent and export size
+        const extentWidth = extent[2] - extent[0];
+        const extentHeight = extent[3] - extent[1];
+
+        const extentCenterX = extent[0] + extentWidth / 2;
+        const extentCenterY = extent[1] + extentHeight / 2;
+
+        const exportMapWidth = exportWidth * exportResolution;
+        const exportMapHeight = exportHeight * exportResolution;
+
+        const center = [
+            extent[0] + exportMapWidth / 2,
+            extent[3] - exportMapHeight / 2
+        ];
+
+        // Show spinner
         const mapContainer = map.getTargetElement();
-
-        // Show loading spinner
         const spinner = document.createElement('div');
         spinner.id = 'mapExportSpinner';
         spinner.innerHTML = 'Exporting...';
@@ -285,50 +312,83 @@ document.addEventListener("DOMContentLoaded", () => {
         mapContainer.appendChild(spinner);
         mapContainer.style.pointerEvents = 'none';
 
-        // Set up new size
-        mapContainer.style.width = `${exportSize[0]}px`;
-        mapContainer.style.height = `${exportSize[1]}px`;
-        map.setSize(exportSize);
-        map.getView().setResolution(exportResolution);
-
-        map.once('rendercomplete', function () {
-            const canvasElements = mapContainer.querySelectorAll('canvas');
-
-            const finalCanvas = document.createElement('canvas');
-            finalCanvas.width = exportSize[0];
-            finalCanvas.height = exportSize[1];
-            const finalContext = finalCanvas.getContext('2d');
-
-            canvasElements.forEach(canvas => {
-                if (canvas.style.display !== 'none') {
-                    finalContext.drawImage(canvas, 0, 0);
-                }
-            });
-
-            try {
-                const image = finalCanvas.toDataURL('image/png');
-                const link = document.createElement('a');
-                link.href = image;
-                link.download = `${mapName}_marked_map_highres.png`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            } catch (err) {
-                console.error("Error generating image:", err);
-            }
-
-            // Restore everything
-            mapContainer.removeChild(spinner);
-            mapContainer.style.pointerEvents = '';
-            mapContainer.style.width = '';
-            mapContainer.style.height = '';
-            map.setSize(originalSize);
-            map.getView().setResolution(originalResolution);
-            map.getView().setCenter(originalCenter);
+        // Resize container for export
+        Object.assign(mapContainer.style, {
+            width: `${exportWidth}px`,
+            height: `${exportHeight}px`,
+            maxWidth: 'none',
+            maxHeight: 'none',
+            position: 'absolute',
+            top: '0',
+            left: '0',
+            zIndex: '9999',
         });
 
-        map.renderSync();
+        // Set map size and view for export
+        map.setSize([exportWidth, exportHeight]);
+        map.getView().setCenter(center);
+        map.getView().setResolution(exportResolution);
+
+        // Wait for render
+        setTimeout(() => {
+            map.once('rendercomplete', function () {
+                console.log("Render complete, capturing canvas...");
+
+                const canvasElements = mapContainer.querySelectorAll('canvas');
+                const finalCanvas = document.createElement('canvas');
+                finalCanvas.width = exportWidth;
+                finalCanvas.height = exportHeight;
+                const finalContext = finalCanvas.getContext('2d');
+
+                canvasElements.forEach(canvas => {
+                    if (canvas.width && canvas.height && canvas.style.display !== 'none') {
+                        finalContext.drawImage(canvas, 0, 0);
+                    }
+                });
+
+                try {
+                    const image = finalCanvas.toDataURL('image/png');
+                    const link = document.createElement('a');
+                    link.href = image;
+                    link.download = `${mapName}_full_map_${exportWidth}x${exportHeight}.png`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    console.log("Export complete, image downloaded.");
+                } catch (err) {
+                    console.error("Error generating image:", err);
+                }
+
+                // Remove spinner and restore styles
+                mapContainer.removeChild(spinner);
+                mapContainer.style.pointerEvents = '';
+                mapContainer.style.width = '';
+                mapContainer.style.height = '';
+                mapContainer.style.position = '';
+                mapContainer.style.top = '';
+                mapContainer.style.left = '';
+                mapContainer.style.zIndex = '';
+                mapContainer.style.maxWidth = '';
+                mapContainer.style.maxHeight = '';
+
+                // Restore original map state
+                map.setSize(originalSize);
+                map.getView().setResolution(originalResolution);
+                map.getView().setCenter(originalCenter);
+                map.getView().setZoom(originalZoom);
+
+                console.log("Map restored to original state.");
+            });
+
+            map.render();  // Trigger render
+        }, 100);  // short delay for layout to apply
     }
+
+
+
+
+
+
 
     create_map();
     map.getView().on('change:resolution', updateMarkers);
