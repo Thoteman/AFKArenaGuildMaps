@@ -36,8 +36,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const color = markedTiles.get(hexCoords) || markerColor;
         const resolution = map.getView().getResolution();
-        const scaleFactorCircle = 2 / resolution;
-        const scaleFactorHex = 4 / resolution;
+        if (mapName === "Abyssal Expedition") {
+            var scaleFactorCircle = 2 / resolution;
+            var scaleFactorHex = 4 / resolution;
+        } else if (mapName === "Hunting Fields") {
+            var scaleFactorCircle = 1.5 / resolution;
+            var scaleFactorHex = 3 / resolution;
+        }
 
         if (markerType === 'hex' || markerType === 'both') {
             const hex = new ol.Feature({ geometry: new ol.geom.Point(coords) });
@@ -251,27 +256,50 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function saveMap() {
-        // Ensure the map has been rendered
+        const exportScale = 4;
+
+        const originalSize = map.getSize();
+        const originalResolution = map.getView().getResolution();
+        const originalCenter = map.getView().getCenter();
+        const exportSize = [originalSize[0] * exportScale, originalSize[1] * exportScale];
+        const exportResolution = originalResolution / exportScale;
+
+        const mapContainer = map.getTargetElement();
+
+        // Show loading spinner
+        const spinner = document.createElement('div');
+        spinner.id = 'mapExportSpinner';
+        spinner.innerHTML = 'Exporting...';
+        Object.assign(spinner.style, {
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            background: 'rgba(0,0,0,0.7)',
+            color: '#fff',
+            padding: '1rem 2rem',
+            borderRadius: '1rem',
+            zIndex: 10000,
+            fontSize: '1.2rem'
+        });
+        mapContainer.appendChild(spinner);
+        mapContainer.style.pointerEvents = 'none';
+
+        // Set up new size
+        mapContainer.style.width = `${exportSize[0]}px`;
+        mapContainer.style.height = `${exportSize[1]}px`;
+        map.setSize(exportSize);
+        map.getView().setResolution(exportResolution);
+
         map.once('rendercomplete', function () {
-            const mapTarget = map.getTargetElement();
-            const canvasElements = mapTarget.querySelectorAll('canvas');
+            const canvasElements = mapContainer.querySelectorAll('canvas');
 
-            if (canvasElements.length === 0) {
-                console.error("No canvases found.");
-                return;
-            }
-
-            // Create a new canvas to merge all layers
-            const width = canvasElements[0].width;
-            const height = canvasElements[0].height;
             const finalCanvas = document.createElement('canvas');
-            finalCanvas.width = width;
-            finalCanvas.height = height;
+            finalCanvas.width = exportSize[0];
+            finalCanvas.height = exportSize[1];
             const finalContext = finalCanvas.getContext('2d');
 
-            // Merge each canvas into the final canvas
-            canvasElements.forEach((canvas) => {
-                // Only merge visible canvases
+            canvasElements.forEach(canvas => {
                 if (canvas.style.display !== 'none') {
                     finalContext.drawImage(canvas, 0, 0);
                 }
@@ -281,16 +309,24 @@ document.addEventListener("DOMContentLoaded", () => {
                 const image = finalCanvas.toDataURL('image/png');
                 const link = document.createElement('a');
                 link.href = image;
-                link.download = `${mapName}_marked_map.png`;
+                link.download = `${mapName}_marked_map_highres.png`;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
             } catch (err) {
                 console.error("Error generating image:", err);
             }
+
+            // Restore everything
+            mapContainer.removeChild(spinner);
+            mapContainer.style.pointerEvents = '';
+            mapContainer.style.width = '';
+            mapContainer.style.height = '';
+            map.setSize(originalSize);
+            map.getView().setResolution(originalResolution);
+            map.getView().setCenter(originalCenter);
         });
 
-        // Force re-render to trigger 'rendercomplete'
         map.renderSync();
     }
 
