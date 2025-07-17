@@ -256,43 +256,41 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function saveMap() {
-        const exportWidth = 19200/3*2;  // half width
-        const exportHeight = 14400/3*2; // half height
+        if (mapName === "Abyssal Expedition") {
+            var exportWidth = 12000;
+            var exportHeight = 9000;
+        } else if (mapName === "Hunting Fields") {
+            var exportWidth = 2400;
+            var exportHeight = 2930;
+        }
 
         const originalSize = map.getSize();
         const originalResolution = map.getView().getResolution();
         const originalCenter = map.getView().getCenter();
         const originalZoom = map.getView().getZoom();
 
-        console.log("Original size:", originalSize);
-        console.log("Original resolution:", originalResolution);
-        console.log("Original center:", originalCenter);
-        console.log("Original zoom:", originalZoom);
-
         const tileLayer = map.getLayers().item(0).getLayers().item(0);
         const tileGrid = tileLayer.getSource().getTileGrid();
-        const extent = tileGrid.getExtent();
+        const extent = tileGrid.getExtent(); // [minX, minY, maxX, maxY]
 
-        console.log("TileGrid extent:", extent);
-
-        const extentWidth = extent[2] - extent[0];
-        const extentHeight = extent[3] - extent[1];
-
-        // Calculate resolution for export - use the resolution one zoom step below max zoom for efficiency
         const maxZoom = map.getView().getMaxZoom();
         const exportZoom = maxZoom - 1;
         const exportResolution = map.getView().getResolutions()[exportZoom];
 
-        console.log("Max zoom:", maxZoom);
-        console.log("Export zoom (one below max):", exportZoom);
-        console.log("Export resolution:", exportResolution);
+        // Calculate exact center based on extent and export size
+        const extentWidth = extent[2] - extent[0];
+        const extentHeight = extent[3] - extent[1];
 
-        // Center on extent center
+        const extentCenterX = extent[0] + extentWidth / 2;
+        const extentCenterY = extent[1] + extentHeight / 2;
+
+        const exportMapWidth = exportWidth * exportResolution;
+        const exportMapHeight = exportHeight * exportResolution;
+
         const center = [
-            (extent[0] + extent[2]) / 2,
-            (extent[1] + extent[3]) / 2
+            extent[0] + exportMapWidth / 2,
+            extent[3] - exportMapHeight / 2
         ];
-        console.log("Export center:", center);
 
         // Show spinner
         const mapContainer = map.getTargetElement();
@@ -385,6 +383,9 @@ document.addEventListener("DOMContentLoaded", () => {
             map.render();  // Trigger render
         }, 100);  // short delay for layout to apply
     }
+
+
+
 
 
 
